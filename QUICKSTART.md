@@ -321,4 +321,3 @@ print(balance)
 
 Если что-то непонятно - читай комментарии в коде, там всё расписано подробно.
 
-https://www.airdroid.com/ru/download/airdroid-cast/
