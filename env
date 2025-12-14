@@ -1,0 +1,13 @@
+USE_SANDBOX=True
+OKX_API_KEY=your_api_key_here
+OKX_SECRET_KEY=your_secret_key_here
+OKX_PASSPHRASE=your_passphrase_here
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+COPY_RATIO=0.05
+MIN_TRADER_ROI=100
+MAX_TRADERS=5
+STOP_LOSS_PERCENT=5.0
+CHECK_INTERVAL=30
+FLASK_ENV=development
+FLASK_DEBUG=False
