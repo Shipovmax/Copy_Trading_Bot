@@ -526,3 +526,6 @@ telegram.error.NetworkError: httpx.ConnectError:
 2025-12-14 21:51:56,433 | INFO | HTTP Request: POST https://api.telegram.org/bot8324268104:AAF2qgTgqBNHZWdlE8P72UtZUKfQeBpPsXc/getUpdates "HTTP/1.1 200 OK"
 2025-12-14 21:52:06,486 | INFO | HTTP Request: POST https://api.telegram.org/bot8324268104:AAF2qgTgqBNHZWdlE8P72UtZUKfQeBpPsXc/getUpdates "HTTP/1.1 200 OK"
 2025-12-14 21:52:16,546 | INFO | HTTP Request: POST https://api.telegram.org/bot8324268104:AAF2qgTgqBNHZWdlE8P72UtZUKfQeBpPsXc/getUpdates "HTTP/1.1 200 OK"
+2025-12-14 21:52:21,615 | INFO | HTTP Request: POST https://api.telegram.org/bot8324268104:AAF2qgTgqBNHZWdlE8P72UtZUKfQeBpPsXc/getUpdates "HTTP/1.1 200 OK"
+2025-12-14 21:52:21,616 | INFO | Application is stopping. This might take a moment.
+2025-12-14 21:52:21,616 | INFO | Application.stop() complete
