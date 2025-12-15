@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 """
-🚀 Copy Trading Bot Pro - FINAL RELEASE
-✨ Перплексити + Анализ + Баланс + Сигналы
 Все данные сохраняются локально (config.json)
 """
 
