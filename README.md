@@ -17,7 +17,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Создай .env файл:
+### 3️⃣ Запусти бота:
 ```bash
 python bot.py
 ```
