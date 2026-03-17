@@ -1,5 +1,5 @@
 """
-Все данные сохраняются локально (config.json)
+All data is stored locally in user_configs.json.
 """
 
 import logging
@@ -18,7 +18,7 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 
-# Настройка логирования
+# Logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(message)s',
@@ -30,32 +30,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# КОНФИГУРАЦИЯ И ХРАНЕНИЕ ДАННЫХ
+# CONFIGURATION AND DATA STORAGE
 # ============================================================================
 
 CONFIG_FILE = 'user_configs.json'
 
 def load_configs():
-    """Загрузить конфигурации пользователей с диска"""
+    """Load user configurations from disk."""
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {}
 
 def save_configs(configs):
-    """Сохранить конфигурации пользователей на диск"""
+    """Save user configurations to disk."""
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(configs, f, indent=2, ensure_ascii=False)
 
 class BotState:
-    """Класс для хранения состояния бота"""
+    """Container for bot state."""
     def __init__(self):
         self.user_configs = load_configs()
         self.user_data = {}
         self.monitoring = {}
         self.last_signals = {}
         
-        # Список основных торговых пар
+        # List of primary trading pairs
         self.TOP_PAIRS = [
             'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT',
             'ADA/USDT', 'AVAX/USDT', 'DOT/USDT', 'DOGE/USDT', 'MATIC/USDT',
@@ -63,29 +63,29 @@ class BotState:
             'ARB/USDT', 'OP/USDT', 'ICP/USDT', 'FIL/USDT', 'XLM/USDT'
         ]
         
-        # Доступные таймфреймы для анализа
+        # Available analysis timeframes
         self.TIMEFRAMES = {
-            '1m': ('1 минута', 30),
-            '5m': ('5 минут', 60),
-            '15m': ('15 минут', 96),
-            '1h': ('1 час', 168),
-            '4h': ('4 часа', 90),
-            '1d': ('1 день', 365)
+            '1m': ('1 minute', 30),
+            '5m': ('5 minutes', 60),
+            '15m': ('15 minutes', 96),
+            '1h': ('1 hour', 168),
+            '4h': ('4 hours', 90),
+            '1d': ('1 day', 365)
         }
 
 state = BotState()
 
 # ============================================================================
-# ИНТЕГРАЦИЯ С PERPLEXITY AI
+# PERPLEXITY AI INTEGRATION
 # ============================================================================
 
 async def ask_perplexity(question: str, user_id: int = None) -> str:
-    """Запрос к Perplexity AI API"""
+    """Send a request to the Perplexity AI API."""
     config = state.user_configs.get(str(user_id), {}) if user_id else {}
     api_key = config.get('perplexity_key')
     
     if not api_key or api_key == "":
-        return "Perplexity API ключ не добавлен. Добавь в [API -> Perplexity]"
+        return "Perplexity API key is not configured. Add it in [API -> Perplexity]."
     
     try:
         async with httpx.AsyncClient() as client:
@@ -105,22 +105,22 @@ async def ask_perplexity(question: str, user_id: int = None) -> str:
                 return data['choices'][0]['message']['content']
             else:
                 logger.error(f"Perplexity error: {response.status_code}")
-                return f"Ошибка API: {response.status_code}"
+                return f"API error: {response.status_code}"
     except Exception as e:
         logger.error(f"Perplexity request failed: {e}")
-        return f"AI недоступен: {str(e)[:50]}"
+        return f"AI unavailable: {str(e)[:50]}"
 
 # ============================================================================
-# ТЕХНИЧЕСКИЙ АНАЛИЗ
+# TECHNICAL ANALYSIS
 # ============================================================================
 
 class Analyzer:
-    """Класс для технического анализа торговых пар"""
+    """Technical analysis for trading pairs."""
     def __init__(self, exchange):
         self.exchange = exchange
     
     def analyze(self, symbol: str, timeframe: str = '1h') -> dict:
-        """Основной метод анализа торговой пары"""
+        """Run analysis for a trading pair."""
         try:
             limit = state.TIMEFRAMES.get(timeframe, ('1h', 100))[1]
             ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
@@ -153,7 +153,7 @@ class Analyzer:
             return None
     
     def calc_rsi(self, closes, period=14):
-        """Расчет индикатора RSI"""
+        """Calculate the RSI indicator."""
         if len(closes) < period:
             return 50
         deltas = np.diff(closes)
@@ -175,7 +175,7 @@ class Analyzer:
         return rsi
     
     def calc_macd(self, closes):
-        """Расчет индикатора MACD"""
+        """Calculate the MACD indicator."""
         if len(closes) < 26:
             return 0, 0, 0
         ema12 = self._ema(closes, 12)
@@ -186,13 +186,13 @@ class Analyzer:
         return macd[-1], signal[-1], histogram[-1]
     
     def calc_ma(self, closes, period):
-        """Расчет скользящей средней"""
+        """Calculate a moving average."""
         if len(closes) < period:
             return closes[-1]
         return np.mean(closes[-period:])
     
     def _ema(self, data, period):
-        """Расчет экспоненциальной скользящей средней"""
+        """Calculate an exponential moving average."""
         ema = np.zeros_like(data)
         ema[0] = data[0]
         multiplier = 2 / (period + 1)
@@ -201,7 +201,7 @@ class Analyzer:
         return ema
     
     def get_signal(self, rsi, macd, signal, ma20, ma50, ma200):
-        """Определение торгового сигнала на основе индикаторов"""
+        """Determine a trading signal based on indicators."""
         score = 0
         if rsi < 30:
             score += 2
@@ -221,11 +221,11 @@ class Analyzer:
             return 'HOLD'
 
 # ============================================================================
-# РАБОТА С БАЛАНСОМ
+# BALANCE HANDLING
 # ============================================================================
 
 def get_exchange(user_id):
-    """Получить объект биржи с ключами пользователя"""
+    """Return an exchange instance using the user's credentials."""
     config = state.user_configs.get(str(user_id), {})
     try:
         if config.get('api_key'):
@@ -243,7 +243,7 @@ def get_exchange(user_id):
         return ccxt.okx({'sandbox': True, 'enableRateLimit': True})
 
 async def fetch_balance(user_id: int, account_type: str = 'spot'):
-    """Получить баланс с OKX (спот/маржин/фьючерс)"""
+    """Fetch the OKX balance for the selected account type."""
     try:
         exchange = get_exchange(user_id)
         config = state.user_configs.get(str(user_id), {})
@@ -295,11 +295,11 @@ async def fetch_balance(user_id: int, account_type: str = 'spot'):
         return {'total_usdt': 0, 'coins': [], 'account_type': account_type}
 
 # ============================================================================
-# ГЛАВНОЕ МЕНЮ
+# MAIN MENU
 # ============================================================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start (главное меню)"""
+    """Handle the /start command and show the main menu."""
     user_id = update.effective_user.id
     
     if str(user_id) not in state.user_data:
@@ -311,18 +311,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
     
     keyboard = [
-        [InlineKeyboardButton('Анализ', callback_data='analyze'), InlineKeyboardButton('Баланс', callback_data='balance')],
-        [InlineKeyboardButton('Сигналы', callback_data='signals'), InlineKeyboardButton('Таймфрейм', callback_data='timeframe')],
+        [InlineKeyboardButton('Analysis', callback_data='analyze'), InlineKeyboardButton('Balance', callback_data='balance')],
+        [InlineKeyboardButton('Signals', callback_data='signals'), InlineKeyboardButton('Timeframe', callback_data='timeframe')],
         [InlineKeyboardButton('API', callback_data='api'), InlineKeyboardButton('AI', callback_data='ai')],
-        [InlineKeyboardButton('Помощь', callback_data='help')],
+        [InlineKeyboardButton('Help', callback_data='help')],
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = """COPY TRADING BOT PRO
 
-Анализ + AI + Баланс + Сигналы
+Analysis + AI + Balance + Signals
 
-Выбери действие:"""
+Choose an action:"""
     
     if update.message:
         await update.message.reply_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
@@ -332,16 +332,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 # ============================================================================
-# УПРАВЛЕНИЕ БАЛАНСОМ
+# BALANCE MANAGEMENT
 # ============================================================================
 
 async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показать баланс пользователя"""
+    """Show the user's balance."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
     
-    await query.edit_message_text('Загружаю баланс...', parse_mode=ParseMode.HTML)
+    await query.edit_message_text('Loading balance...', parse_mode=ParseMode.HTML)
     
     account_type = state.user_data.get(str(user_id), {}).get('account_type', 'spot')
     balance_data = await fetch_balance(user_id, account_type)
@@ -355,12 +355,12 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         total_str = "$0.00"
     
-    message = f"""БАЛАНС ({account_type.upper()})
+    message = f"""BALANCE ({account_type.upper()})
 
 Total USDT: {total_str}
-Монет: {len(coins)}
+Coins: {len(coins)}
 
-Активы:
+Assets:
 """
     
     if coins:
@@ -378,26 +378,26 @@ Total USDT: {total_str}
             
             if used > 0.00000001:
                 used_str = f"{used:.8f}".rstrip('0').rstrip('.')
-                message += f"{symbol:8s} {free_str:>12s} | Ордеры: {used_str}\n"
+                message += f"{symbol:8s} {free_str:>12s} | Orders: {used_str}\n"
             else:
                 message += f"{symbol:8s} {free_str:>12s}\n"
     else:
-        message += "Нет активов\n"
+        message += "No assets\n"
     
     config = state.user_configs.get(str(user_id), {})
     api_status = '✅' if config.get('api_key') else '❌'
     message += f"\nOKX API: {api_status}"
     
     keyboard = [
-        [InlineKeyboardButton('Счета', callback_data='account_type'), InlineKeyboardButton('Обновить', callback_data='balance')],
-        [InlineKeyboardButton('Назад', callback_data='back')]
+        [InlineKeyboardButton('Accounts', callback_data='account_type'), InlineKeyboardButton('Refresh', callback_data='balance')],
+        [InlineKeyboardButton('Back', callback_data='back')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def show_account_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор типа счета"""
+    """Show account type selection."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -405,23 +405,23 @@ async def show_account_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current = state.user_data.get(str(user_id), {}).get('account_type', 'spot')
     
     keyboard = [
-        [InlineKeyboardButton(f"{'✅' if current == 'spot' else '◾'} Спот (trading)", callback_data='at_spot')],
-        [InlineKeyboardButton(f"{'✅' if current == 'margin' else '◾'} Маржин", callback_data='at_margin')],
-        [InlineKeyboardButton(f"{'✅' if current == 'futures' else '◾'} Фьючерс", callback_data='at_futures')],
-        [InlineKeyboardButton('Назад', callback_data='balance')]
+        [InlineKeyboardButton(f"{'✅' if current == 'spot' else '◾'} Spot (trading)", callback_data='at_spot')],
+        [InlineKeyboardButton(f"{'✅' if current == 'margin' else '◾'} Margin", callback_data='at_margin')],
+        [InlineKeyboardButton(f"{'✅' if current == 'futures' else '◾'} Futures", callback_data='at_futures')],
+        [InlineKeyboardButton('Back', callback_data='balance')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    message = f"""ТИП СЧЕТА
+    message = f"""ACCOUNT TYPE
 
-Текущий: {current.upper()}
+Current: {current.upper()}
 
-Выбери:"""
+Choose:"""
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def set_account_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Установить тип счета"""
+    """Set the account type."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -429,15 +429,15 @@ async def set_account_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     account_type = query.data.replace('at_', '')
     state.user_data[str(user_id)]['account_type'] = account_type
     
-    await query.answer(f'{account_type.upper()} счет', show_alert=True)
+    await query.answer(f'{account_type.upper()} account', show_alert=True)
     await show_balance(update, context)
 
 # ============================================================================
-# АНАЛИЗ С ИСПОЛЬЗОВАНИЕМ AI
+# AI-ASSISTED ANALYSIS
 # ============================================================================
 
 async def show_pairs(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор пар для анализа"""
+    """Show pair selection for analysis."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -457,22 +457,22 @@ async def show_pairs(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if row:
             keyboard.append(row)
     
-    keyboard.append([InlineKeyboardButton('АНАЛИЗИРОВАТЬ', callback_data='do_analyze')])
-    keyboard.append([InlineKeyboardButton('Назад', callback_data='back')])
+    keyboard.append([InlineKeyboardButton('ANALYZE', callback_data='do_analyze')])
+    keyboard.append([InlineKeyboardButton('Back', callback_data='back')])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     selected = len(state.user_data[str(user_id)]['selected_pairs'])
-    message = f"""ВЫБОР ПАР
+    message = f"""PAIR SELECTION
 
-Выбрано: {selected}
+Selected: {selected}
 
-Нажми на пару:"""
+Tap a pair:"""
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def toggle_pair(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбрать/снять выбор пары"""
+    """Toggle pair selection."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -488,7 +488,7 @@ async def toggle_pair(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_pairs(update, context)
 
 async def do_analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Провести анализ выбранных пар"""
+    """Analyze the selected pairs."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -497,10 +497,10 @@ async def do_analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
     timeframe = state.user_data[str(user_id)]['timeframe']
     
     if not selected:
-        await query.answer('Выбери пары!', show_alert=True)
+        await query.answer('Select at least one pair.', show_alert=True)
         return
     
-    await query.edit_message_text('Анализирую + AI...', parse_mode=ParseMode.HTML)
+    await query.edit_message_text('Running analysis + AI...', parse_mode=ParseMode.HTML)
     
     exchange = get_exchange(user_id)
     analyzer = Analyzer(exchange)
@@ -512,10 +512,10 @@ async def do_analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
             results.append(analysis)
         await asyncio.sleep(0.1)
     
-    message = f"""РЕЗУЛЬТАТЫ
+    message = f"""RESULTS
 
-Таймфрейм: {state.TIMEFRAMES[timeframe][0]}
-Пар: {len(results)}
+Timeframe: {state.TIMEFRAMES[timeframe][0]}
+Pairs: {len(results)}
 
 """
     
@@ -531,34 +531,34 @@ MACD: {r['macd']:.2f}
 """
         pairs_text.append(f"{r['symbol']} (RSI:{r['rsi']:.0f}) -> {r['signal_type']}")
     
-    # AI анализ
+    # AI analysis
     if results and pairs_text:
         question = (
-            f"Проанализируй эти сигналы крипто на таймфрейме {state.TIMEFRAMES[timeframe][0]}:\n"
+            f"Analyze these crypto signals on the {state.TIMEFRAMES[timeframe][0]} timeframe:\n"
             + "\n".join(pairs_text) +
-            "\n\nДай умный краткий вывод (2-3 предложения): что сейчас лучше покупать/продавать? "
-            "Ответь по-русски."
+            "\n\nProvide a concise, smart conclusion in 2-3 sentences: what is better to buy or sell right now? "
+            "Answer in English."
         )
         ai_response = await ask_perplexity(question, user_id)
         message += f"""
-AI АНАЛИЗ:
+AI ANALYSIS:
 {ai_response}
 """
     
     keyboard = [
-        [InlineKeyboardButton('Новый анализ', callback_data='analyze')],
-        [InlineKeyboardButton('В меню', callback_data='back')]
+        [InlineKeyboardButton('New analysis', callback_data='analyze')],
+        [InlineKeyboardButton('Main menu', callback_data='back')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 # ============================================================================
-# АВТОМАТИЧЕСКИЕ СИГНАЛЫ
+# AUTOMATED SIGNALS
 # ============================================================================
 
 async def show_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Меню управления сигналами"""
+    """Show the signals management menu."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -573,32 +573,32 @@ async def show_signals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
     
     monitoring_enabled = state.monitoring.get(user_id_str, False)
-    status = 'ВКЛ' if monitoring_enabled else 'ВЫКЛ'
+    status = 'ON' if monitoring_enabled else 'OFF'
     
     signal_pairs = state.user_data[user_id_str].get('signal_pairs', [])
     signal_interval = state.user_data[user_id_str].get('signal_interval', 5)
     
     keyboard = [
-        [InlineKeyboardButton(f'Включить/Выключить ({status})', callback_data='toggle_signals')],
-        [InlineKeyboardButton(f'Интервал ({signal_interval}м)', callback_data='signal_interval')],
-        [InlineKeyboardButton(f'Пары ({len(signal_pairs)})', callback_data='signal_pairs')],
-        [InlineKeyboardButton('Назад', callback_data='back')]
+        [InlineKeyboardButton(f'Toggle ({status})', callback_data='toggle_signals')],
+        [InlineKeyboardButton(f'Interval ({signal_interval}m)', callback_data='signal_interval')],
+        [InlineKeyboardButton(f'Pairs ({len(signal_pairs)})', callback_data='signal_pairs')],
+        [InlineKeyboardButton('Back', callback_data='back')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    message = f"""АВТОСИГНАЛЫ
+    message = f"""AUTO SIGNALS
 
-Статус: {status}
-Интервал: {signal_interval} минут
-Пар: {len(signal_pairs)}
+Status: {status}
+Interval: {signal_interval} minutes
+Pairs: {len(signal_pairs)}
 
-Получай BUY / SELL сигналы автоматически!"""
+Receive BUY / SELL signals automatically."""
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def toggle_signals(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Включить/выключить автоматические сигналы"""
+    """Enable or disable automated signals."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -608,14 +608,14 @@ async def toggle_signals(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state.monitoring[user_id_str] = not current
     
     if state.monitoring[user_id_str]:
-        await query.answer('Сигналы ВКЛЮЧЕНЫ', show_alert=True)
+        await query.answer('Signals enabled', show_alert=True)
     else:
-        await query.answer('Сигналы ВЫКЛЮЧЕНЫ', show_alert=True)
+        await query.answer('Signals disabled', show_alert=True)
     
     await show_signals_menu(update, context)
 
 async def show_signal_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор интервала проверки сигналов"""
+    """Show signal interval selection."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -623,24 +623,24 @@ async def show_signal_interval(update: Update, context: ContextTypes.DEFAULT_TYP
     current = state.user_data[str(user_id)].get('signal_interval', 5)
     
     keyboard = [
-        [InlineKeyboardButton(f"{'✅' if current == 5 else '◾'} 5 минут", callback_data='si_5')],
-        [InlineKeyboardButton(f"{'✅' if current == 15 else '◾'} 15 минут", callback_data='si_15')],
-        [InlineKeyboardButton(f"{'✅' if current == 30 else '◾'} 30 минут", callback_data='si_30')],
-        [InlineKeyboardButton(f"{'✅' if current == 60 else '◾'} 1 час", callback_data='si_60')],
-        [InlineKeyboardButton('В меню', callback_data='back')]
+        [InlineKeyboardButton(f"{'✅' if current == 5 else '◾'} 5 minutes", callback_data='si_5')],
+        [InlineKeyboardButton(f"{'✅' if current == 15 else '◾'} 15 minutes", callback_data='si_15')],
+        [InlineKeyboardButton(f"{'✅' if current == 30 else '◾'} 30 minutes", callback_data='si_30')],
+        [InlineKeyboardButton(f"{'✅' if current == 60 else '◾'} 1 hour", callback_data='si_60')],
+        [InlineKeyboardButton('Main menu', callback_data='back')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    message = f"""ИНТЕРВАЛ СИГНАЛОВ
+    message = f"""SIGNAL INTERVAL
 
-Текущий: {current} минут
+Current: {current} minutes
 
-Выбери интервал:"""
+Choose an interval:"""
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def set_signal_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Установить интервал проверки сигналов"""
+    """Set the signal check interval."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -648,11 +648,11 @@ async def set_signal_interval(update: Update, context: ContextTypes.DEFAULT_TYPE
     interval = int(query.data.replace('si_', ''))
     state.user_data[str(user_id)]['signal_interval'] = interval
     
-    await query.answer(f'Интервал {interval} минут', show_alert=True)
+    await query.answer(f'Interval: {interval} minutes', show_alert=True)
     await show_signals_menu(update, context)
 
 async def show_signal_pairs(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор пар для автоматических сигналов"""
+    """Show pair selection for automated signals."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -672,21 +672,21 @@ async def show_signal_pairs(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if row:
             keyboard.append(row)
     
-    keyboard.append([InlineKeyboardButton('В меню', callback_data='back')])
+    keyboard.append([InlineKeyboardButton('Main menu', callback_data='back')])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     selected = len(state.user_data[str(user_id)]['signal_pairs'])
-    message = f"""ПАРЫ ДЛЯ СИГНАЛОВ
+    message = f"""SIGNAL PAIRS
 
-Выбрано: {selected}
+Selected: {selected}
 
-Нажми на пару:"""
+Tap a pair:"""
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def toggle_signal_pair(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбрать/снять выбор пары для сигналов"""
+    """Toggle signal pair selection."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -702,11 +702,11 @@ async def toggle_signal_pair(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await show_signal_pairs(update, context)
 
 # ============================================================================
-# УПРАВЛЕНИЕ ТАЙМФРЕЙМОМ
+# TIMEFRAME MANAGEMENT
 # ============================================================================
 
 async def show_timeframes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор таймфрейма для анализа"""
+    """Show timeframe selection for analysis."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -721,20 +721,20 @@ async def show_timeframes(update: Update, context: ContextTypes.DEFAULT_TYPE):
             callback_data=f"tf_{tf_key}"
         )])
     
-    keyboard.append([InlineKeyboardButton('Назад', callback_data='back')])
+    keyboard.append([InlineKeyboardButton('Back', callback_data='back')])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    message = f"""ТАЙМФРЕЙМ
+    message = f"""TIMEFRAME
 
-Текущий: {state.TIMEFRAMES[current_tf][0]}
+Current: {state.TIMEFRAMES[current_tf][0]}
 
-Выбери:"""
+Choose:"""
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def select_timeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбрать таймфрейм"""
+    """Select a timeframe."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -746,14 +746,14 @@ async def select_timeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_timeframes(update, context)
 
 # ============================================================================
-# УПРАВЛЕНИЕ API КЛЮЧАМИ
+# API KEY MANAGEMENT
 # ============================================================================
 
-# Состояния для ConversationHandler
+# ConversationHandler states
 WAITING_API_KEY, WAITING_SECRET, WAITING_PASSPHRASE, WAITING_PERPLEXITY = range(4)
 
 async def show_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Меню управления API ключами"""
+    """Show the API management menu."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -767,13 +767,13 @@ async def show_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton('OKX Secret', callback_data='add_secret')],
         [InlineKeyboardButton('OKX Passphrase', callback_data='add_pass')],
         [InlineKeyboardButton(f'Perplexity {perplexity_status}', callback_data='add_perplexity')],
-        [InlineKeyboardButton(f'{okx_status} Проверить OKX', callback_data='check_api')],
-        [InlineKeyboardButton('В меню', callback_data='back')]
+        [InlineKeyboardButton(f'{okx_status} Check OKX', callback_data='check_api')],
+        [InlineKeyboardButton('Main menu', callback_data='back')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    message = f"""API УПРАВЛЕНИЕ
+    message = f"""API MANAGEMENT
 
 OKX: {okx_status}
 • API: {'✅' if config.get('api_key') else '❌'}
@@ -786,22 +786,22 @@ Perplexity: {perplexity_status}
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def add_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Добавить API Key OKX"""
+    """Prompt for the OKX API key."""
     query = update.callback_query
     await query.answer()
     
-    keyboard = [[InlineKeyboardButton('Отмена', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('Cancel', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
-        "Введи OKX API Key:\n\n(отправь текстом)",
+        "Enter the OKX API Key:\n\n(send it as plain text)",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
     return WAITING_API_KEY
 
 async def receive_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получить и сохранить API Key OKX"""
+    """Receive and save the OKX API key."""
     user_id = update.effective_user.id
     user_id_str = str(user_id)
     api_key = update.message.text.strip()
@@ -812,11 +812,11 @@ async def receive_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state.user_configs[user_id_str]['api_key'] = api_key
     save_configs(state.user_configs)
     
-    keyboard = [[InlineKeyboardButton('API меню', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('API menu', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        f"API Key сохранен!\n\n{api_key[:25]}...\n\nВведи Secret Key в следующем сообщении или вернись в меню",
+        f"API Key saved.\n\n{api_key[:25]}...\n\nEnter the Secret Key in the next message or return to the menu.",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
@@ -824,22 +824,22 @@ async def receive_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def add_secret_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Добавить Secret Key OKX"""
+    """Prompt for the OKX Secret Key."""
     query = update.callback_query
     await query.answer()
     
-    keyboard = [[InlineKeyboardButton('Отмена', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('Cancel', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
-        "Введи OKX Secret Key:\n\n(отправь текстом)",
+        "Enter the OKX Secret Key:\n\n(send it as plain text)",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
     return WAITING_SECRET
 
 async def receive_secret_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получить и сохранить Secret Key OKX"""
+    """Receive and save the OKX Secret Key."""
     user_id = update.effective_user.id
     user_id_str = str(user_id)
     secret_key = update.message.text.strip()
@@ -850,11 +850,11 @@ async def receive_secret_key(update: Update, context: ContextTypes.DEFAULT_TYPE)
     state.user_configs[user_id_str]['secret_key'] = secret_key
     save_configs(state.user_configs)
     
-    keyboard = [[InlineKeyboardButton('API меню', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('API menu', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        f"Secret Key сохранен!\n\n{secret_key[:25]}...\n\nВведи Passphrase или вернись в меню",
+        f"Secret Key saved.\n\n{secret_key[:25]}...\n\nEnter the Passphrase or return to the menu.",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
@@ -862,22 +862,22 @@ async def receive_secret_key(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return ConversationHandler.END
 
 async def add_passphrase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Добавить Passphrase OKX"""
+    """Prompt for the OKX Passphrase."""
     query = update.callback_query
     await query.answer()
     
-    keyboard = [[InlineKeyboardButton('Отмена', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('Cancel', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
-        "Введи OKX Passphrase:\n\n(отправь текстом)",
+        "Enter the OKX Passphrase:\n\n(send it as plain text)",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
     return WAITING_PASSPHRASE
 
 async def receive_passphrase(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получить и сохранить Passphrase OKX"""
+    """Receive and save the OKX Passphrase."""
     user_id = update.effective_user.id
     user_id_str = str(user_id)
     passphrase = update.message.text.strip()
@@ -888,11 +888,11 @@ async def receive_passphrase(update: Update, context: ContextTypes.DEFAULT_TYPE)
     state.user_configs[user_id_str]['passphrase'] = passphrase
     save_configs(state.user_configs)
     
-    keyboard = [[InlineKeyboardButton('API меню', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('API menu', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        f"Passphrase сохранен!\n\n{passphrase}\n\nВсе готово! Возвращайся в меню",
+        f"Passphrase saved.\n\n{passphrase}\n\nSetup is complete. Return to the menu.",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
@@ -900,24 +900,24 @@ async def receive_passphrase(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return ConversationHandler.END
 
 async def add_perplexity_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Добавить API ключ Perplexity"""
+    """Prompt for the Perplexity API key."""
     query = update.callback_query
     await query.answer()
     
-    keyboard = [[InlineKeyboardButton('Отмена', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('Cancel', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
-        "Введи Perplexity API Key:\n\n"
-        "Получи на https://www.perplexity.ai/api/\n"
-        "(отправь текстом: ppl_...)",
+        "Enter the Perplexity API Key:\n\n"
+        "Get it at https://www.perplexity.ai/api/\n"
+        "(send it as plain text: ppl_...)",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
     return WAITING_PERPLEXITY
 
 async def receive_perplexity_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получить и сохранить API ключ Perplexity"""
+    """Receive and save the Perplexity API key."""
     user_id = update.effective_user.id
     user_id_str = str(user_id)
     perplexity_key = update.message.text.strip()
@@ -928,11 +928,11 @@ async def receive_perplexity_key(update: Update, context: ContextTypes.DEFAULT_T
     state.user_configs[user_id_str]['perplexity_key'] = perplexity_key
     save_configs(state.user_configs)
     
-    keyboard = [[InlineKeyboardButton('API меню', callback_data='api')]]
+    keyboard = [[InlineKeyboardButton('API menu', callback_data='api')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        f"Perplexity API Key сохранен!\n\n{perplexity_key[:30]}...\n\nГотово! Теперь AI будет работать",
+        f"Perplexity API Key saved.\n\n{perplexity_key[:30]}...\n\nDone. AI is now available.",
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
@@ -940,7 +940,7 @@ async def receive_perplexity_key(update: Update, context: ContextTypes.DEFAULT_T
     return ConversationHandler.END
 
 async def check_api_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Проверить подключение к OKX API"""
+    """Check the OKX API connection."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -948,7 +948,7 @@ async def check_api_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     config = state.user_configs.get(str(user_id), {})
     
     if not config.get('api_key'):
-        await query.answer('Добавь API Key!', show_alert=True)
+        await query.answer('Add the API Key first.', show_alert=True)
         return
     
     try:
@@ -960,60 +960,60 @@ async def check_api_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'enableRateLimit': True
         })
         balance = exchange.fetch_balance()
-        await query.answer('OKX API подключен!', show_alert=True)
+        await query.answer('OKX API connected.', show_alert=True)
     except Exception as e:
-        await query.answer(f'Ошибка: {str(e)[:50]}', show_alert=True)
+        await query.answer(f'Error: {str(e)[:50]}', show_alert=True)
 
 # ============================================================================
-# AI ПОМОЩНИК
+# AI ASSISTANT
 # ============================================================================
 
 async def show_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Меню AI помощника"""
+    """Show the AI assistant menu."""
     query = update.callback_query
     await query.answer()
     
     keyboard = [
-        [InlineKeyboardButton('Что покупать?', callback_data='ai_buy'), InlineKeyboardButton('Индикаторы', callback_data='ai_indicators')],
-        [InlineKeyboardButton('Стратегия', callback_data='ai_strategy'), InlineKeyboardButton('Риски', callback_data='ai_risk')],
-        [InlineKeyboardButton('В меню', callback_data='back')]
+        [InlineKeyboardButton('What to buy?', callback_data='ai_buy'), InlineKeyboardButton('Indicators', callback_data='ai_indicators')],
+        [InlineKeyboardButton('Strategy', callback_data='ai_strategy'), InlineKeyboardButton('Risk', callback_data='ai_risk')],
+        [InlineKeyboardButton('Main menu', callback_data='back')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    message = """AI ПОМОЩНИК
+    message = """AI ASSISTANT
 
-Спроси Perplexity:"""
+Ask Perplexity:"""
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def ai_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка AI вопросов"""
+    """Handle AI assistant questions."""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
     
     questions = {
-        'ai_buy': "Какие топ-5 крипто монет лучше всего купить прямо сейчас в краткосрочной торговле на 1 час? Дай кратко с объяснением.",
-        'ai_indicators': "Объясни на одной странице: RSI, MACD, Moving Averages (MA) и как их использовать вместе в торговле крипто?",
-        'ai_strategy': "Расскажи лучшие стратегии торговли крипто для новичка на таймфрейме 1h. Дай 3-4 конкретных совета.",
-        'ai_risk': "Как правильно управлять риском в трейдинге крипто? Дай конкретные советы о stop loss и размере позиции."
+        'ai_buy': "Which top 5 crypto coins are the best to buy right now for short-term trading on the 1-hour timeframe? Keep it brief and explain why.",
+        'ai_indicators': "Explain in one page what RSI, MACD, and Moving Averages (MA) are, and how to use them together in crypto trading.",
+        'ai_strategy': "Describe the best crypto trading strategies for a beginner on the 1h timeframe. Give 3-4 specific tips.",
+        'ai_risk': "How should risk be managed correctly in crypto trading? Give specific advice about stop loss and position sizing."
     }
     
     question = questions.get(query.data)
     if not question:
         return
     
-    await query.edit_message_text('AI думает...', parse_mode=ParseMode.HTML)
+    await query.edit_message_text('AI is thinking...', parse_mode=ParseMode.HTML)
     
     response = await ask_perplexity(question, user_id)
     
     keyboard = [
-        [InlineKeyboardButton('Еще вопрос', callback_data='ai')],
-        [InlineKeyboardButton('В меню', callback_data='back')]
+        [InlineKeyboardButton('Another question', callback_data='ai')],
+        [InlineKeyboardButton('Main menu', callback_data='back')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    message = f"""ОТВЕТ AI:
+    message = f"""AI RESPONSE:
 
 {response}
 """
@@ -1021,58 +1021,58 @@ async def ai_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 # ============================================================================
-# СПРАВКА
+# HELP
 # ============================================================================
 
 async def show_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показать справку"""
+    """Show the help screen."""
     query = update.callback_query
     await query.answer()
     
-    message = """СПРАВКА
+    message = """HELP
 
-Анализировать
-Выбери пары -> получи техан + AI анализ
+Analysis
+Select pairs to receive technical analysis and AI insights
 
-Баланс
-Твой баланс USDT и все монеты на OKX
+Balance
+View your USDT balance and all coins on OKX
 
-Сигналы
-Автоматические уведомления BUY / SELL
+Signals
+Automatic BUY / SELL notifications
 
-Таймфрейм
-Выбери время анализа (1m, 5m, 15m, 1h, 4h, 1d)
+Timeframe
+Choose the analysis interval (1m, 5m, 15m, 1h, 4h, 1d)
 
 API
-Добавь ключи OKX и Perplexity
+Add your OKX and Perplexity keys
 
 AI
-Вопросы помощнику Perplexity
+Ask questions to the Perplexity assistant
 
-Сигналы:
-BUY - Покупай!
-SELL - Продавай!
-HOLD - Жди
+Signals:
+BUY - Buy
+SELL - Sell
+HOLD - Wait
 
-Все данные сохраняются в config.json"""
+All data is stored in user_configs.json"""
     
-    keyboard = [[InlineKeyboardButton('В меню', callback_data='back')]]
+    keyboard = [[InlineKeyboardButton('Main menu', callback_data='back')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 # ============================================================================
-# НАВИГАЦИЯ
+# NAVIGATION
 # ============================================================================
 
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат в главное меню"""
+    """Return to the main menu."""
     query = update.callback_query
     await query.answer()
     await start(update, context)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Основной обработчик callback кнопок"""
+    """Main callback button handler."""
     query = update.callback_query
     
     handlers = {
@@ -1113,20 +1113,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handlers[query.data](update, context)
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик ошибок"""
+    """Error handler."""
     logger.error(f'Error: {context.error}')
 
 # ============================================================================
-# ОСНОВНАЯ ФУНКЦИЯ
+# MAIN FUNCTION
 # ============================================================================
 
 def main():
-    """Основная функция запуска бота"""
+    """Start the bot."""
     TOKEN = input('TELEGRAM_BOT_TOKEN: ').strip()
     
     logger.info('='*70)
     logger.info('COPY TRADING BOT PRO - FINAL RELEASE')
-    logger.info('Анализ + Perplexity + Баланс + Сигналы')
+    logger.info('Analysis + Perplexity + Balance + Signals')
     logger.info('='*70)
     
     app = Application.builder().token(TOKEN).build()
@@ -1152,9 +1152,9 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_error_handler(error_handler)
     
-    logger.info('Бот запущен!')
-    logger.info('/start в Telegram для начала')
-    logger.info(f'Данные сохраняются в {CONFIG_FILE}')
+    logger.info('Bot started.')
+    logger.info('Use /start in Telegram to begin.')
+    logger.info(f'Data is stored in {CONFIG_FILE}')
     
     app.run_polling()
 

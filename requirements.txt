@@ -1,4 +1,4 @@
-# Copy Trading Bot PRO - Зависимости
+# Copy Trading Bot PRO - Dependencies
 
 # Telegram Bot Framework
 python-telegram-bot>=20.0
@@ -6,13 +6,13 @@ python-telegram-bot>=20.0
 # Cryptocurrency Exchange API
 ccxt>=3.0
 
-# Numerical Computing (для технического анализа)
+# Numerical Computing (for technical analysis)
 numpy>=1.20
 
-# Async HTTP Client (для запросов к Perplexity AI)
+# Async HTTP Client (for Perplexity AI requests)
 httpx>=0.24
 
-# Опционально (для продвинутых пользователей):
-aiofiles>=23.0  # Для асинхронной работы с файлами
-pandas>=1.5     # Для анализа данных
-python-dotenv   # Для загрузки переменных окружения из .env файла
+# Optional (for advanced users):
+aiofiles>=23.0  # For asynchronous file operations
+pandas>=1.5     # For data analysis
+python-dotenv   # For loading environment variables from a .env file

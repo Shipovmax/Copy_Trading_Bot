@@ -1,10 +1,10 @@
-### 1️⃣ Клонируй репо или скачай файлы:
+### 1. Clone the repository or download the files
 ```bash
 git clone https://github.com/Shipovmax/Copy_Trading_Bot.git
 cd Copy_Trading_Bot
 ```
 
-### 2️⃣ Установи зависимости:
+### 2. Install dependencies
 ```bash
 # macOS/Linux
 python3 -m venv venv
@@ -17,7 +17,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Запусти бота:
+### 3. Run the bot
 ```bash
 python bot.py
 ```
