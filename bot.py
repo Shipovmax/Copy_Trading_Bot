@@ -17,6 +17,7 @@ import numpy as np
 import asyncio
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # Logging configuration
 logging.basicConfig(
@@ -35,14 +36,14 @@ logger = logging.getLogger(__name__)
 
 CONFIG_FILE = 'user_configs.json'
 
-def load_configs():
+def load_configs() -> dict[str, Any]:
     """Load user configurations from disk."""
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {}
 
-def save_configs(configs):
+def save_configs(configs: dict[str, Any]) -> None:
     """Save user configurations to disk."""
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(configs, f, indent=2, ensure_ascii=False)
@@ -224,7 +225,7 @@ class Analyzer:
 # BALANCE HANDLING
 # ============================================================================
 
-def get_exchange(user_id):
+def get_exchange(user_id: int) -> ccxt.okx:
     """Return an exchange instance using the user's credentials."""
     config = state.user_configs.get(str(user_id), {})
     try:
